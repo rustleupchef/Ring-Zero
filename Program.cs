@@ -14,7 +14,6 @@ namespace Ring_Zero
             dynamic json = JsonConvert.DeserializeObject(data);
             int source = (int) json["source"];
             bool isOllama = (bool) json["isOllamaModel"];
-            Console.WriteLine(isOllama);
 
             // use camera if source isn't -1
             if (source >= 0)
