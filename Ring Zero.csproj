@@ -11,6 +11,13 @@
     <ItemGroup>
       <PackageReference Include="Emgu.CV" Version="4.10.0.5680" />
       <PackageReference Include="Emgu.CV.runtime.debian-arm64" Version="4.10.0.5680" />
+      <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="source.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
 </Project>

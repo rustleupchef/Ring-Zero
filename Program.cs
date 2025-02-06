@@ -2,6 +2,7 @@
 using System.Net.Sockets;
 using Emgu.CV;
 using Emgu.CV.CvEnum;
+using Newtonsoft.Json;
 
 namespace Ring_Zero
 {
@@ -9,6 +10,33 @@ namespace Ring_Zero
     {
         internal static void Main(string[] args)
         {
+            string data = File.ReadAllText("source.json");
+            dynamic json = JsonConvert.DeserializeObject(data);
+            int source = (int) json["source"];
+            bool isOllama = (bool) json["isOllamaModel"];
+            Console.WriteLine(isOllama);
+
+            // use camera if source isn't -1
+            if (source >= 0)
+            {
+                VideoCapture capture = new VideoCapture(source);
+                capture.Start();
+                while (true)
+                {
+                    Mat frame = new Mat();
+                    frame = capture.QueryFrame();
+                    CvInvoke.Imshow("frame", frame);
+
+                    if (CvInvoke.WaitKey(1) == 27)
+                    {
+                        CvInvoke.DestroyAllWindows();
+                        capture.Stop();
+                        capture.Dispose();
+                        return;
+                    }
+                }
+            }
+            
             using (TcpListener socket = new TcpListener(IPAddress.Any, 8080))
             {
                 socket.Start();
