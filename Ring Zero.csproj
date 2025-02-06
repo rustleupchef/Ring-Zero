@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net9.0</TargetFramework>
+        <RootNamespace>Ring_Zero</RootNamespace>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Emgu.CV" Version="4.10.0.5680" />
+      <PackageReference Include="Emgu.CV.runtime.debian-arm64" Version="4.10.0.5680" />
+    </ItemGroup>
+
+</Project>

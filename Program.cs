@@ -1,0 +1,56 @@
+﻿using System.Net;
+using System.Net.Sockets;
+using Emgu.CV;
+using Emgu.CV.CvEnum;
+
+namespace Ring_Zero
+{
+    public class Program
+    {
+        internal static void Main(string[] args)
+        {
+            using (TcpListener socket = new TcpListener(IPAddress.Any, 8080))
+            {
+                socket.Start();
+
+                while (true)
+                {
+                    TcpClient client = socket.AcceptTcpClient();
+                    NetworkStream stream = client.GetStream();
+                    BinaryReader br = new BinaryReader(stream);
+                    
+                    // grabbing length of buffer
+                    byte[] lengthBuffer = new byte[4];
+                    br.Read(lengthBuffer, 0, 4);
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        lengthBuffer = lengthBuffer.Reverse().ToArray();
+                    }
+                    int length = BitConverter.ToInt32(lengthBuffer, 0);
+                    
+                    // reading buffer fully
+                    byte[] buffer = new byte[length];
+                    for (int bytesRead = 0; bytesRead < length; bytesRead += stream.Read(buffer, bytesRead, length - bytesRead));
+                    
+                    // converting buffer to frame
+                    Mat frame = new Mat();
+                    CvInvoke.Imdecode(buffer, ImreadModes.Color, frame);
+                    CvInvoke.Imshow("frame", frame);
+
+                    // end code
+                    if (CvInvoke.WaitKey(1) == 27)
+                    {
+                        CvInvoke.DestroyAllWindows();
+                        stream.Close();
+                        client.Close();
+                        socket.Stop();
+                        break;
+                    }
+                    
+                    stream.Close();
+                    client.Close();
+                }
+            }
+        }
+    }
+}
