@@ -1,4 +1,5 @@
 {
   "source": 0,
-  "isOllamaModel" : true 
+  "isOllamaModel" : true,
+  "task" : ""
 }
