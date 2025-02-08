@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using Emgu.CV;
 using Emgu.CV.CvEnum;
 using Emgu.CV.Util;
@@ -9,16 +10,20 @@ namespace Ring_Zero
 {
     public class Program
     {
+        private static string task;
+        private static string key;
+        private static bool isRunning = false;
+        private static readonly HttpClient client = new HttpClient();
+        
         internal static void Main(string[] args)
         {
             string data = File.ReadAllText("source.json");
             dynamic json = JsonConvert.DeserializeObject(data);
             int source = (int) json["source"];
             
-            bool isOllama = (bool) json["isOllamaModel"];
-            string task = (string) json["task"];
-            
-            
+            task = (string) json["task"]; 
+            key = (string) json["key"];
+
             // use camera if source isn't -1
             if (source >= 0)
             {
@@ -28,7 +33,7 @@ namespace Ring_Zero
                 {
                     Mat frame = new Mat();
                     frame = capture.QueryFrame();
-                    CvInvoke.Imshow("frame", frame);
+                    process(frame);
 
                     if (CvInvoke.WaitKey(1) == 27)
                     {
@@ -83,17 +88,12 @@ namespace Ring_Zero
             }
         }
 
-        private static void process(Mat frame, bool isOllama)
+        private static void process(Mat frame)
         {
-            // TODO: handle situation where not using ollama
-            if (!isOllama)
-            {
-                return;
-            }
-
             VectorOfByte buffer = new();
             CvInvoke.Imencode(".jpg", frame, buffer);
             byte[] jpeg = buffer.ToArray();
         }
+        
     }
 }
