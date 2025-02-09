@@ -80,6 +80,7 @@ namespace Ring_Zero
                     // converting buffer to frame
                     Mat frame = new();
                     CvInvoke.Imdecode(buffer, ImreadModes.Color, frame);
+                    process(frame);
                     CvInvoke.Imshow("frame", frame);
 
                     // end code
