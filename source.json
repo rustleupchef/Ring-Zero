@@ -1,5 +1,7 @@
 {
   "source": 0,
-  "key" : "",
-  "task" : ""
+  "key" : "api_key",
+  "task" : "Say yes when a person is in the frame",
+  "keyword" : "",
+  "rate" : 5000
 }

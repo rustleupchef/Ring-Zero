@@ -5,6 +5,7 @@ using Emgu.CV;
 using Emgu.CV.CvEnum;
 using Emgu.CV.Util;
 using Newtonsoft.Json;
+using System.Text.Json;
 
 namespace Ring_Zero
 {
@@ -12,10 +13,11 @@ namespace Ring_Zero
     {
         private static string task;
         private static string key;
-        private static bool isRunning = false;
-        private static readonly HttpClient client = new HttpClient();
+        private static string keyword;
+        private static int rate;
+        private static bool isRunning;
         
-        internal static void Main(string[] args)
+        internal static void Main()
         {
             string data = File.ReadAllText("source.json");
             dynamic json = JsonConvert.DeserializeObject(data);
@@ -23,6 +25,12 @@ namespace Ring_Zero
             
             task = (string) json["task"]; 
             key = (string) json["key"];
+            keyword = (string) json["keyword"];
+            if (keyword == "")
+            {
+                keyword = "yes";
+            }
+            rate = (int) json["rate"];
 
             // use camera if source isn't -1
             if (source >= 0)
@@ -34,6 +42,8 @@ namespace Ring_Zero
                     Mat frame = new Mat();
                     frame = capture.QueryFrame();
                     process(frame);
+                    
+                    CvInvoke.Imshow("frame", frame);
 
                     if (CvInvoke.WaitKey(1) == 27)
                     {
@@ -88,12 +98,57 @@ namespace Ring_Zero
             }
         }
 
-        private static void process(Mat frame)
+        private static async Task process(Mat frame)
         {
+            if (isRunning) return;
+            
+            isRunning = true;
             VectorOfByte buffer = new();
             CvInvoke.Imencode(".jpg", frame, buffer);
             byte[] jpeg = buffer.ToArray();
+            string base64 = Convert.ToBase64String(jpeg);
+
+            string url =
+                $"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}";
+            var payload = new
+            {
+                contents = new[]
+                {
+                    new
+                    {
+                        parts = new object[]
+                        {
+                            new
+                            {
+                                text = task
+                            },
+                            new
+                            {
+                                inline_data = new
+                                {
+                                    mime_type = "image/jpeg",
+                                    data = base64
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            
+            string data = JsonConvert.SerializeObject(payload);
+
+            using (HttpClient client = new())
+            {
+                StringContent content = new(data, Encoding.UTF8, "application/json");
+                HttpResponseMessage response = await client.PostAsync(url, content);
+                    
+                string result = await response.Content.ReadAsStringAsync();
+                dynamic json = JsonConvert.DeserializeObject(result);
+                string text = (string)json["candidates"][0]["content"]["parts"][0]["text"];
+                if (text.ToLower().Contains(keyword.ToLower())) Console.Beep();
+            }
+            Thread.Sleep(rate);
+            isRunning = false;
         }
-        
     }
 }
