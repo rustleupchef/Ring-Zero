@@ -133,6 +133,22 @@ namespace Ring_Zero
                             }
                         }
                     }
+                },
+                generationConfig = new
+                {
+                    temperature = 0,
+                    maxOutputTokens = 10
+                },
+                systemInstruction = new
+                {
+                    role = "system",
+                    parts = new object[]
+                    {
+                        new
+                        {
+                            text = "You are the best captioner in the world. You get straight to the point"
+                        }
+                    }
                 }
             };
             
@@ -146,6 +162,7 @@ namespace Ring_Zero
                 string result = await response.Content.ReadAsStringAsync();
                 dynamic json = JsonConvert.DeserializeObject(result);
                 string text = (string)json["candidates"][0]["content"]["parts"][0]["text"];
+                Console.WriteLine(text);
                 if (text.ToLower().Contains(keyword.ToLower())) Console.Beep();
             }
             Thread.Sleep(rate);
