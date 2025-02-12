@@ -1,6 +1,7 @@
 {
   "source": 0,
-  "key" : "api_key",
+  "gemini" : false,
+  "key" : "",
   "task" : "Say yes when a person is in the frame",
   "keyword" : "",
   "rate" : 5000

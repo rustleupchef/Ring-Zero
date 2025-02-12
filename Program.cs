@@ -15,6 +15,7 @@ namespace Ring_Zero
         private static string key;
         private static string keyword;
         private static int rate;
+        private static bool isGemini = false;
         private static bool isRunning;
         
         internal static void Main()
@@ -31,6 +32,7 @@ namespace Ring_Zero
                 keyword = "yes";
             }
             rate = (int) json["rate"];
+            isGemini = (bool) json["gemini"];
 
             // use camera if source isn't -1
             if (source >= 0)
@@ -109,8 +111,48 @@ namespace Ring_Zero
             byte[] jpeg = buffer.ToArray();
             string base64 = Convert.ToBase64String(jpeg);
 
-            string url =
-                $"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}";
+            string url = (isGemini) 
+                ? $"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}" 
+                : "http://localhost:11434/";
+
+            if (!isGemini)
+            {
+                using HttpClient client = new();
+                client.BaseAddress = new Uri(url);
+                
+                var ollamaPayload = new
+                {
+                    model = "llava",
+                    system = "You are a image captioner that makes extremely quick responses",
+                    prompt = task,
+                    images = new string[] {base64},
+                    options = new
+                    {
+                        num_predict = 4,
+                        temperature = 0
+                    },
+                    stream = false
+                };
+                
+                StringContent content = new(JsonConvert.SerializeObject(ollamaPayload), Encoding.UTF8, "application/json");
+                HttpResponseMessage response = await client.PostAsync("/api/generate", content);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine(response.StatusCode);
+                    return;
+                }
+                
+                string text = await response.Content.ReadAsStringAsync();
+                dynamic json = JsonConvert.DeserializeObject(text);
+                text = (string) json["response"];
+                Console.WriteLine(text);
+                if (text.ToLower().Contains(keyword.ToLower())) Console.Beep();
+                
+                isRunning = false;
+                return;
+            }
+            
             var payload = new
             {
                 contents = new[]
