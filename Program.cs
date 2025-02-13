@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Drawing;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using Emgu.CV;
@@ -24,6 +25,7 @@ namespace Ring_Zero
             dynamic json = JsonConvert.DeserializeObject(data);
             int source = (int) json["source"];
             
+            // grabbing json data
             task = (string) json["task"]; 
             key = (string) json["key"];
             keyword = (string) json["keyword"];
@@ -41,11 +43,10 @@ namespace Ring_Zero
                 capture.Start();
                 while (true)
                 {
-                    Mat frame = new Mat();
+                    Mat frame = new();
                     frame = capture.QueryFrame();
                     process(frame);
-                    
-                    CvInvoke.Imshow("frame", frame);
+                    if (!frame.IsEmpty) CvInvoke.Imshow("frame", frame);
 
                     if (CvInvoke.WaitKey(1) == 27)
                     {
@@ -83,7 +84,8 @@ namespace Ring_Zero
                     Mat frame = new();
                     CvInvoke.Imdecode(buffer, ImreadModes.Color, frame);
                     process(frame);
-                    CvInvoke.Imshow("frame", frame);
+
+                    if (!frame.IsEmpty) CvInvoke.Imshow("frame", frame);
 
                     // end code
                     if (CvInvoke.WaitKey(1) == 27)
@@ -106,15 +108,25 @@ namespace Ring_Zero
             if (isRunning) return;
             
             isRunning = true;
+
+            // dividing image size by greater number if ollama to improve performance
+            int denomitator = isGemini ? 1 : 5;
+            
+            // converting image to base64
+            Mat small = new Mat();
+            // resizing image for performance
+            CvInvoke.Resize(frame, small, new Size(frame.Width/denomitator, frame.Height/denomitator));
             VectorOfByte buffer = new();
-            CvInvoke.Imencode(".jpg", frame, buffer);
+            CvInvoke.Imencode(".jpg", small, buffer);
             byte[] jpeg = buffer.ToArray();
             string base64 = Convert.ToBase64String(jpeg);
 
+            // grabbing different url based if gemini or not
             string url = (isGemini) 
                 ? $"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}" 
                 : "http://localhost:11434/";
 
+            // making ollama request
             if (!isGemini)
             {
                 using HttpClient client = new();
@@ -153,6 +165,7 @@ namespace Ring_Zero
                 return;
             }
             
+            // making gemini request
             var payload = new
             {
                 contents = new[]
