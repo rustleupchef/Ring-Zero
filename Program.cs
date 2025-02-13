@@ -46,7 +46,7 @@ namespace Ring_Zero
                     Mat frame = new();
                     frame = capture.QueryFrame();
                     process(frame);
-                    if (!frame.IsEmpty) CvInvoke.Imshow("frame", frame);
+                    if (frame != null) CvInvoke.Imshow("frame", frame);
 
                     if (CvInvoke.WaitKey(1) == 27)
                     {
