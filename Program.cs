@@ -5,8 +5,8 @@ using System.Text;
 using Emgu.CV;
 using Emgu.CV.CvEnum;
 using Emgu.CV.Util;
+using Emgu.CV.Structure;
 using Newtonsoft.Json;
-using System.Text.Json;
 
 namespace Ring_Zero
 {
@@ -18,6 +18,7 @@ namespace Ring_Zero
         private static int rate;
         private static bool isGemini = false;
         private static bool isRunning;
+        private static Mat previous = new Mat();
         
         internal static void Main()
         {
@@ -45,9 +46,20 @@ namespace Ring_Zero
                 {
                     Mat frame = new();
                     frame = capture.QueryFrame();
-                    process(frame);
-                    if (frame != null) CvInvoke.Imshow("frame", frame);
+                    
+                    // only process if frames are severly different
+                    double similarity = compare(previous, frame);
+                    if (similarity > 1.2)
+                        process(frame);
+                    
+                    // display frame
+                    if (frame != null) 
+                        CvInvoke.Imshow("frame", frame);
+                    
+                    // change previous frame
+                    previous = frame;
 
+                    // exit code
                     if (CvInvoke.WaitKey(1) == 27)
                     {
                         CvInvoke.DestroyAllWindows();
@@ -83,11 +95,16 @@ namespace Ring_Zero
                     // converting buffer to frame
                     Mat frame = new();
                     CvInvoke.Imdecode(buffer, ImreadModes.Color, frame);
-                    process(frame);
+                    
+                    // only process if frames are severly different
+                    double similarity = compare(previous, frame);
+                    if (similarity > 1.2)
+                        process(frame);
 
-                    if (!frame.IsEmpty) CvInvoke.Imshow("frame", frame);
+                    if (!frame.IsEmpty) 
+                        CvInvoke.Imshow("frame", frame);
 
-                    // end code
+                    // exit code
                     if (CvInvoke.WaitKey(1) == 27)
                     {
                         CvInvoke.DestroyAllWindows();
@@ -103,6 +120,7 @@ namespace Ring_Zero
             }
         }
 
+        // determing if image has desired task
         private static async Task process(Mat frame)
         {
             if (isRunning) return;
@@ -112,11 +130,12 @@ namespace Ring_Zero
             // dividing image size by greater number if ollama to improve performance
             int denomitator = isGemini ? 1 : 5;
             
-            // converting image to base64
-            Mat small = new Mat();
             // resizing image for performance
+            Mat small = new Mat();
             CvInvoke.Resize(frame, small, new Size(frame.Width/denomitator, frame.Height/denomitator));
             VectorOfByte buffer = new();
+            
+            // converting image to base64
             CvInvoke.Imencode(".jpg", small, buffer);
             byte[] jpeg = buffer.ToArray();
             string base64 = Convert.ToBase64String(jpeg);
@@ -152,6 +171,7 @@ namespace Ring_Zero
                 if (!response.IsSuccessStatusCode)
                 {
                     Console.WriteLine(response.StatusCode);
+                    previous = frame;
                     return;
                 }
                 
@@ -162,6 +182,7 @@ namespace Ring_Zero
                 if (text.ToLower().Contains(keyword.ToLower())) Console.Beep();
                 
                 isRunning = false;
+                previous = frame;
                 return;
             }
             
@@ -222,6 +243,28 @@ namespace Ring_Zero
             }
             Thread.Sleep(rate);
             isRunning = false;
+            previous = frame;
+        }
+
+        private static double compare(Mat previous, Mat current)
+        {
+            if (previous == null || current == null || previous.IsEmpty || current.IsEmpty)
+            {
+                return 0.0;
+            }
+
+            Mat grayPrevious = new();
+            Mat grayCurrent = new();
+            
+            CvInvoke.CvtColor(previous, grayPrevious, ColorConversion.Bgr2Gray);
+            CvInvoke.CvtColor(current, grayCurrent, ColorConversion.Bgr2Gray);
+
+            MCvScalar mssim = new();
+            Mat difference = new();
+            
+            CvInvoke.AbsDiff(grayPrevious, grayCurrent, difference);
+            mssim = CvInvoke.Mean(difference);
+            return (mssim.V0 + mssim.V1 + mssim.V2 + mssim.V3) / 4.0;
         }
     }
 }
