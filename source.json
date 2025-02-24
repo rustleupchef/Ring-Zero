@@ -4,5 +4,6 @@
   "key" : "",
   "task" : "Say yes when a person is in the frame",
   "keyword" : "",
+  "sound" : "sound.mp3",
   "rate" : 5000
 }

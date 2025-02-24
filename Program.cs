@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using System.Diagnostics;
+using System.Drawing;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -15,6 +16,7 @@ namespace Ring_Zero
         private static string task;
         private static string key;
         private static string keyword;
+        private static string sound;
         private static int rate;
         private static bool isGemini = false;
         private static bool isRunning;
@@ -36,6 +38,8 @@ namespace Ring_Zero
             }
             rate = (int) json["rate"];
             isGemini = (bool) json["gemini"];
+            sound = json["sound"];
+            sound = File.Exists(sound) ? sound : "sound.mp3";
 
             // use camera if source isn't -1
             if (source >= 0)
@@ -123,7 +127,8 @@ namespace Ring_Zero
         // determing if image has desired task
         private static async Task process(Mat frame)
         {
-            if (isRunning) return;
+            if (isRunning) 
+                return;
             
             isRunning = true;
 
@@ -179,7 +184,8 @@ namespace Ring_Zero
                 dynamic json = JsonConvert.DeserializeObject(text);
                 text = (string) json["response"];
                 Console.WriteLine(text);
-                if (text.ToLower().Contains(keyword.ToLower())) Console.Beep();
+                if (text.ToLower().Contains(keyword.ToLower())) 
+                    playSound(sound);
                 
                 isRunning = false;
                 previous = frame;
@@ -239,7 +245,8 @@ namespace Ring_Zero
                 dynamic json = JsonConvert.DeserializeObject(result);
                 string text = (string)json["candidates"][0]["content"]["parts"][0]["text"];
                 Console.WriteLine(text);
-                if (text.ToLower().Contains(keyword.ToLower())) Console.Beep();
+                if (text.ToLower().Contains(keyword.ToLower())) 
+                    playSound(sound);
             }
             Thread.Sleep(rate);
             isRunning = false;
@@ -249,9 +256,7 @@ namespace Ring_Zero
         private static double compare(Mat previous, Mat current)
         {
             if (previous == null || current == null || previous.IsEmpty || current.IsEmpty)
-            {
                 return 0.0;
-            }
 
             Mat grayPrevious = new();
             Mat grayCurrent = new();
@@ -265,6 +270,25 @@ namespace Ring_Zero
             CvInvoke.AbsDiff(grayPrevious, grayCurrent, difference);
             mssim = CvInvoke.Mean(difference);
             return (mssim.V0 + mssim.V1 + mssim.V2 + mssim.V3) / 4.0;
+        }
+
+        private static void playSound(string soundPath)
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                Process process = new Process();
+                process.StartInfo.FileName = $"start";
+                process.StartInfo.Arguments = $"\"{soundPath}\"";
+                process.Start();
+                process.WaitForExit();
+                return;
+            }
+            
+            Process process1 = new Process();
+            process1.StartInfo.FileName = $"a{(OperatingSystem.IsMacOS() ? "f" : "")}play";
+            process1.StartInfo.Arguments = $"\"{soundPath}\"";
+            process1.Start();
+            process1.WaitForExit();
         }
     }
 }

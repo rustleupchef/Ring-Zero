@@ -38,6 +38,7 @@ Specs
   "key" : {api_key},
   "task" : {what to detect},
   "keyword" : {what to find},
+  "sound" : {the sound played},
   "rate" : {time in milliseconds}
 }
 ```
@@ -67,6 +68,10 @@ Example
     task: "Say yes when a dog is in the image"
     keyword: "yes"
 Do note that the app will default to yes as a keyword if one is not provided
+### sound
+This is simple the sound that will be played on detection of the task
+The input should be a file path
+if a non valid file path is placed in a default sound will be played
 ### rate
 A time in between each llm request
 The time is recorded in milliseconds
